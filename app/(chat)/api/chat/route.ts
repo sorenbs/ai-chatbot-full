@@ -222,9 +222,11 @@ export async function POST(request: Request) {
       return new Response(stream);
     }
   } catch (error) {
+    console.error('Chat API error:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
+    return new ChatSDKError('internal_server_error:chat').toResponse();
   }
 }
 
