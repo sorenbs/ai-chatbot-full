@@ -126,6 +126,16 @@ export function Chat({
     setMessages,
   });
 
+  // Emit custom event when messages change
+  useEffect(() => {
+    const hasMessages = messages.length > 0;
+    window.dispatchEvent(new CustomEvent('chat-messages-changed', { 
+      detail: { hasMessages } 
+    }));
+  }, [messages]);
+
+
+
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
