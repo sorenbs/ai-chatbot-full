@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { FileViewer } from '@/components/file-viewer';
 import { cn } from '@/lib/utils';
 
 interface FileNode {
@@ -85,6 +86,7 @@ export function FilesTab() {
   const [expandedFolders, setExpandedFolders] = useState(
     new Set(['app', 'app/(chat)', 'components'])
   );
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const toggleFolder = (path: string) => {
     setExpandedFolders(prev => {
@@ -98,6 +100,14 @@ export function FilesTab() {
     });
   };
 
+  const handleFileSelect = (path: string, type: 'file' | 'folder') => {
+    if (type === 'file') {
+      setSelectedFile(selectedFile === path ? null : path);
+    } else {
+      toggleFolder(path);
+    }
+  };
+
   const renderFileNode = (node: FileNode, depth = 0) => {
     const isExpanded = expandedFolders.has(node.path);
     
@@ -107,10 +117,11 @@ export function FilesTab() {
           variant="ghost"
           className={cn(
             "w-full justify-start text-sm h-8 px-2 hover:bg-muted",
-            depth > 0 && `ml-${depth * 4}`
+            depth > 0 && `ml-${depth * 4}`,
+            selectedFile === node.path && node.type === 'file' && "bg-muted"
           )}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => node.type === 'folder' && toggleFolder(node.path)}
+          onClick={() => handleFileSelect(node.path, node.type)}
         >
           {node.type === 'folder' ? (
             <>
@@ -144,16 +155,33 @@ export function FilesTab() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h3 className="text-sm font-medium">Project Files</h3>
+    <div className="h-full flex">
+      {/* File tree on the left */}
+      <div className={cn(
+        "flex flex-col border-r border-border transition-all duration-200",
+        selectedFile ? "w-1/3 min-w-[200px]" : "w-full"
+      )}>
+        <div className="p-4 border-b">
+          <h3 className="text-sm font-medium">Project Files</h3>
+        </div>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            {fileTree.map(node => renderFileNode(node))}
+          </div>
+        </ScrollArea>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="p-2">
-          {fileTree.map(node => renderFileNode(node))}
+      {/* File viewer on the right */}
+      {selectedFile && (
+        <div className="flex-1 min-w-0">
+          <FileViewer
+            filePath={selectedFile}
+            onClose={() => setSelectedFile(null)}
+            showCloseButton={false}
+          />
         </div>
-      </ScrollArea>
+      )}
     </div>
   );
 }
