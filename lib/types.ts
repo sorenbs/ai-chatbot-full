@@ -28,6 +28,18 @@ export type ChatTools = {
   createDocument: createDocumentTool;
   updateDocument: updateDocumentTool;
   requestSuggestions: requestSuggestionsTool;
+  application_create: any;
+  application_logs: any;
+  application_read: any;
+  application_restart: any;
+  application_status: any;
+  applications_delete: any;
+  applications_list: any;
+  applications_set_active: any;
+  file_create: any;
+  file_read: any;
+  file_edit_diff: any;
+  files_list: any;
 };
 
 export type CustomUIDataTypes = {

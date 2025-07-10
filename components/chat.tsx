@@ -78,7 +78,7 @@ export function Chat({
         };
       },
     }),
-    onData: (dataPart) => {
+    onData: (dataPart: any) => {
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
     },
     onFinish: () => {

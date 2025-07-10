@@ -1,9 +1,9 @@
 import {
   convertToModelMessages,
   createUIMessageStream,
+  hasToolCall,
   JsonToSseTransformStream,
   smoothStream,
-  stepCountIs,
   streamText,
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
@@ -19,10 +19,9 @@ import {
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
-import { createDocument } from '@/lib/ai/tools/create-document';
-import { updateDocument } from '@/lib/ai/tools/update-document';
-import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
+import { prismaMCPClientAndTools } from '@/lib/ai/tools/prisma-mcp';
 import { getWeather } from '@/lib/ai/tools/get-weather';
+import { returnToUser } from '@/lib/ai/tools/return-to-user';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -151,31 +150,40 @@ export async function POST(request: Request) {
 
     console.log(JSON.stringify(uiMessages, null, 2));
 
+    const { prismaClient, prismaTools } = await prismaMCPClientAndTools();
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: convertToModelMessages(uiMessages),
-          stopWhen: stepCountIs(5),
+          stopWhen: hasToolCall('returnToUser'),
+          //@ts-ignore
           experimental_activeTools:
             selectedChatModel === 'chat-model-reasoning'
               ? []
-              : [
+              : ([
                   'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
+                  'application_create',
+                  'application_logs',
+                  'application_read',
+                  'application_restart',
+                  'application_status',
+                  'applications_delete',
+                  'applications_list',
+                  'applications_set_active',
+                  'file_create',
+                  'file_read',
+                  'file_edit_diff',
+                  'files_list',
+                  'returnToUser',
+                ] as const),
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
+            ...prismaTools,
             getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
+            returnToUser,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
@@ -193,6 +201,9 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages }) => {
+        console.log('FINISHED:');
+        console.dir(messages);
+
         await saveMessages({
           messages: messages.map((message) => ({
             id: message.id,
@@ -203,6 +214,8 @@ export async function POST(request: Request) {
             chatId: id,
           })),
         });
+
+        await prismaClient.close();
       },
       onError: (error) => {
         console.log(error);

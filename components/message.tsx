@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import type { Vote } from '@/lib/db/schema';
 import { DocumentToolCall, DocumentToolResult } from './document';
+import { ApplicationToolCall, ApplicationToolResult, GenericToolCall, GenericToolResult } from './application';
 import { PencilEditIcon, SparklesIcon } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -303,6 +304,282 @@ const PurePreviewMessage = ({
                         result={output}
                         isReadonly={isReadonly}
                       />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-application_create') {
+                const { toolCallId, state } = part;
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <ApplicationToolCall args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <ApplicationToolResult input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              // Generic handlers for all other MCP tools
+              if (type === 'tool-application_logs') {
+                const { toolCallId, state } = part;
+                const toolName = 'application_logs';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-application_read') {
+                const { toolCallId, state } = part;
+                const toolName = 'application_read';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-application_restart') {
+                const { toolCallId, state } = part;
+                const toolName = 'application_restart';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-application_status') {
+                const { toolCallId, state } = part;
+                const toolName = 'application_status';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-applications_delete') {
+                const { toolCallId, state } = part;
+                const toolName = 'applications_delete';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-applications_list') {
+                const { toolCallId, state } = part;
+                const toolName = 'applications_list';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-applications_set_active') {
+                const { toolCallId, state } = part;
+                const toolName = 'applications_set_active';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-file_create') {
+                const { toolCallId, state } = part;
+                const toolName = 'file_create';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-file_read') {
+                const { toolCallId, state } = part;
+                const toolName = 'file_read';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-file_edit_diff') {
+                const { toolCallId, state } = part;
+                const toolName = 'file_edit_diff';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
+                    </div>
+                  );
+                }
+              }
+
+              if (type === 'tool-files_list') {
+                const { toolCallId, state } = part;
+                const toolName = 'files_list';
+
+                if (state === 'input-available') {
+                  const { input } = part;
+                  return (
+                    <div key={toolCallId} className="skeleton">
+                      <GenericToolCall toolName={toolName} args={input} />
+                    </div>
+                  );
+                }
+
+                if (state === 'output-available') {
+                  const { output, input } = part;
+                  return (
+                    <div key={toolCallId}>
+                      <GenericToolResult toolName={toolName} input={input} output={output} />
                     </div>
                   );
                 }
