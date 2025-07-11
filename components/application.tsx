@@ -22,7 +22,32 @@ interface ApplicationToolResultProps {
 }
 
 function PureApplicationToolResult({ input, output }: ApplicationToolResultProps) {
-  const result = JSON.parse(output.content[0].text);
+  let result: any;
+  let isError = false;
+
+  try {
+    result = JSON.parse(output.content[0].text);
+  } catch (error) {
+    isError = true;
+    result = { error: output.content[0].text };
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="size-2 bg-red-500 rounded-full" />
+          <span className="text-red-800 font-medium">Application Error</span>
+        </div>
+        <div className="text-sm text-red-700 mb-2">
+          <strong>Name:</strong> {input.applicationName}
+        </div>
+        <div className="text-sm text-red-700">
+          <strong>Error:</strong> {result.error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">

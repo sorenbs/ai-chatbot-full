@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import React, { memo } from 'react';
+import React, { memo, Children, isValidElement } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './code-block';
@@ -8,6 +8,19 @@ const components: Partial<Components> = {
   // @ts-expect-error
   code: CodeBlock,
   pre: ({ children }) => <>{children}</>,
+  p: ({ children }) => {
+    // Check if any child is a block element (like our CodeBlock)
+    const hasBlockElement = Children.toArray(children).some(child => 
+      isValidElement(child) && 
+      (child.type === CodeBlock || (child.props?.className?.includes('not-prose')))
+    );
+    
+    if (hasBlockElement) {
+      return <div className="my-4">{children}</div>;
+    }
+    
+    return <p>{children}</p>;
+  },
   ol: ({ node, children, ...props }) => {
     return (
       <ol className="list-decimal list-outside ml-4" {...props}>
