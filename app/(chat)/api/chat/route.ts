@@ -1,5 +1,4 @@
 import {
-  convertToModelMessages,
   createUIMessageStream,
   hasToolCall,
   JsonToSseTransformStream,
@@ -18,6 +17,8 @@ import {
   saveMessages,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
+import { safeConvertToModelMessages } from '@/lib/utils/message-conversion';
+import { wrapToolsWithValidation } from '@/lib/utils/tool-validation';
 import { generateTitleFromUserMessage } from '../../actions';
 import { prismaMCPClientAndTools } from '@/lib/ai/tools/prisma-mcp';
 import { getWeather } from '@/lib/ai/tools/get-weather';
@@ -151,13 +152,16 @@ export async function POST(request: Request) {
     console.log(JSON.stringify(uiMessages, null, 2));
 
     const { prismaClient, prismaTools } = await prismaMCPClientAndTools();
+    
+    // Wrap all tools with validation
+    const validatedPrismaTools = wrapToolsWithValidation(prismaTools);
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
-          messages: convertToModelMessages(uiMessages),
+          messages: safeConvertToModelMessages(uiMessages),
           stopWhen: hasToolCall('returnToUser'),
           //@ts-ignore
           experimental_activeTools:
@@ -181,7 +185,7 @@ export async function POST(request: Request) {
                 ] as const),
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
-            ...prismaTools,
+            ...validatedPrismaTools,
             getWeather,
             returnToUser,
           },
