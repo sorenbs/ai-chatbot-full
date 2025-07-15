@@ -18,8 +18,18 @@ export function ChatLayout({ children }: ChatLayoutProps) {
 
     window.addEventListener('chat-messages-changed', handleMessagesChange as EventListener);
     
+    // Check for existing messages on mount to handle direct URL navigation
+    const checkForExistingMessages = () => {
+      // Dispatch a custom event to request current message state
+      window.dispatchEvent(new CustomEvent('chat-messages-check'));
+    };
+
+    // Small delay to ensure chat component has mounted
+    const timeoutId = setTimeout(checkForExistingMessages, 100);
+    
     return () => {
       window.removeEventListener('chat-messages-changed', handleMessagesChange as EventListener);
+      clearTimeout(timeoutId);
     };
   }, []);
 

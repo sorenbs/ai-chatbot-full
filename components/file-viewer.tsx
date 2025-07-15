@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Edit3, Save, X, Eye } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { getFilesClient } from '@/lib/files-client';
+import { useProject } from '@/lib/project-context';
 
 interface FileViewerProps {
   filePath: string;
@@ -14,91 +15,59 @@ interface FileViewerProps {
   showCloseButton?: boolean;
 }
 
-export function FileViewer({ filePath, onClose, showCloseButton = true }: FileViewerProps) {
+export function FileViewer({
+  filePath,
+  onClose,
+  showCloseButton = true,
+}: FileViewerProps) {
   const [content, setContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { projectId } = useProject();
 
   const fileName = filePath.split('/').pop() || '';
   const fileExtension = fileName.split('.').pop() || '';
 
-  useEffect(() => {
-    loadFileContent();
-  }, [filePath]);
+  const loadFileContent = useCallback(async () => {
+    if (!projectId) {
+      setError('No project selected');
+      return;
+    }
 
-  const loadFileContent = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // In a real app, this would be an API call to read the file
-      // For now, we'll simulate loading some content
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock file content based on file type
-      const mockContent = getMockFileContent(filePath);
-      setContent(mockContent);
-      setEditedContent(mockContent);
+      const filesClient = getFilesClient();
+      filesClient.setProjectId(projectId);
+      const fileContent = await filesClient.getFileContent(filePath);
+
+      setContent(fileContent);
+      setEditedContent(fileContent);
     } catch (err) {
       setError('Failed to load file content');
       console.error('Error loading file:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filePath, projectId]);
 
-  const getMockFileContent = (path: string): string => {
-    if (path.includes('layout.tsx')) {
-      return `import { ReactNode } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { ChatLayout } from '@/components/chat-layout';
-
-export default function Layout({ children }: { children: ReactNode }) {
-  return (
-    <SidebarProvider>
-      <ChatLayout>
-        {children}
-      </ChatLayout>
-    </SidebarProvider>
-  );
-}`;
-    } else if (path.includes('page.tsx')) {
-      return `import { Chat } from '@/components/chat';
-
-export default function Page() {
-  return <Chat />;
-}`;
-    } else if (path.includes('.ts') || path.includes('.tsx')) {
-      return `// TypeScript file: ${path}
-export default function ${fileName.replace(/\.[^/.]+$/, "")}() {
-  return (
-    <div>
-      <h1>Hello World</h1>
-    </div>
-  );
-}`;
-    } else if (path.includes('.json')) {
-      return `{
-  "name": "sample-file",
-  "version": "1.0.0",
-  "description": "Sample JSON file"
-}`;
-    } else {
-      return `// File: ${path}
-// This is a mock file content for demonstration
-// In a real application, this would be loaded from the actual file system
-
-console.log('Hello from ${fileName}');
-`;
-    }
-  };
+  useEffect(() => {
+    loadFileContent();
+  }, [loadFileContent]);
 
   const handleSave = async () => {
+    if (!projectId) {
+      setError('No project selected');
+      return;
+    }
+
     try {
-      // In a real app, this would be an API call to save the file
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const filesClient = getFilesClient();
+      filesClient.setProjectId(projectId);
+      await filesClient.writeFile(filePath, editedContent);
       setContent(editedContent);
       setIsEditing(false);
       console.log('File saved:', filePath);
@@ -183,7 +152,7 @@ console.log('Hello from ${fileName}');
             {getLanguageFromExtension(fileExtension)}
           </Badge>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {isEditing ? (
             <>
@@ -195,7 +164,11 @@ console.log('Hello from ${fileName}');
               </Button>
             </>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+            >
               <Edit3 className="w-4 h-4" />
             </Button>
           )}

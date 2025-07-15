@@ -17,7 +17,7 @@ export function safeConvertToModelMessages(uiMessages: ChatMessage[]) {
         if (message.role === 'assistant' && message.parts) {
           // Filter out malformed tool calls from assistant messages
           const validParts = message.parts.filter(part => {
-            if (part.type?.includes('tool-') && part.state === 'input-streaming') {
+            if (part.type?.includes('tool-') && (part as any).state === 'input-streaming') {
               // Check if tool call has required parameters
               const toolCall = part as any;
               if (!toolCall.input || typeof toolCall.input !== 'object') {

@@ -1,103 +1,118 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  FileText,
+  Folder,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileViewer } from '@/components/file-viewer';
 import { cn } from '@/lib/utils';
-
-interface FileNode {
-  name: string;
-  type: 'file' | 'folder';
-  path: string;
-  children?: FileNode[];
-  isOpen?: boolean;
-}
-
-// Sample file tree data - in a real app, this would come from an API
-const fileTree: FileNode[] = [
-  {
-    name: 'app',
-    type: 'folder',
-    path: 'app',
-    isOpen: true,
-    children: [
-      {
-        name: '(auth)',
-        type: 'folder',
-        path: 'app/(auth)',
-        children: [
-          { name: 'auth.ts', type: 'file', path: 'app/(auth)/auth.ts' },
-          { name: 'login', type: 'folder', path: 'app/(auth)/login', children: [] },
-        ],
-      },
-      {
-        name: '(chat)',
-        type: 'folder',
-        path: 'app/(chat)',
-        isOpen: true,
-        children: [
-          { name: 'layout.tsx', type: 'file', path: 'app/(chat)/layout.tsx' },
-          { name: 'page.tsx', type: 'file', path: 'app/(chat)/page.tsx' },
-          {
-            name: 'api',
-            type: 'folder',
-            path: 'app/(chat)/api',
-            children: [
-              {
-                name: 'chat',
-                type: 'folder',
-                path: 'app/(chat)/api/chat',
-                children: [
-                  { name: 'route.ts', type: 'file', path: 'app/(chat)/api/chat/route.ts' },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    name: 'components',
-    type: 'folder',
-    path: 'components',
-    isOpen: true,
-    children: [
-      { name: 'app-sidebar.tsx', type: 'file', path: 'components/app-sidebar.tsx' },
-      { name: 'right-panel.tsx', type: 'file', path: 'components/right-panel.tsx' },
-      { name: 'files-tab.tsx', type: 'file', path: 'components/files-tab.tsx' },
-      {
-        name: 'ui',
-        type: 'folder',
-        path: 'components/ui',
-        children: [
-          { name: 'button.tsx', type: 'file', path: 'components/ui/button.tsx' },
-          { name: 'sidebar.tsx', type: 'file', path: 'components/ui/sidebar.tsx' },
-          { name: 'tabs.tsx', type: 'file', path: 'components/ui/tabs.tsx' },
-        ],
-      },
-    ],
-  },
-];
+import { getFilesClient, type FileNode } from '@/lib/files-client';
+import { useProject } from '@/lib/project-context';
 
 export function FilesTab() {
-  const [expandedFolders, setExpandedFolders] = useState(
-    new Set(['app', 'app/(chat)', 'components'])
-  );
+  const [expandedFolders, setExpandedFolders] = useState(new Set<string>());
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { projectId } = useProject();
 
-  const toggleFolder = (path: string) => {
-    setExpandedFolders(prev => {
+  const loadFileTree = useCallback(async () => {
+    if (!projectId) {
+      setError('No project selected');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const filesClient = getFilesClient();
+      filesClient.setProjectId(projectId);
+      const tree = await filesClient.buildFileTree();
+      setFileTree(tree);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load files');
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  const loadFolderChildren = async (path: string) => {
+    if (!projectId) {
+      setError('No project selected');
+      return;
+    }
+
+    try {
+      const filesClient = getFilesClient();
+      filesClient.setProjectId(projectId);
+      const children = await filesClient.loadFolderChildren(path);
+
+      setFileTree((prev) => {
+        const updateNode = (nodes: FileNode[]): FileNode[] => {
+          return nodes.map((node) => {
+            if (node.path === path && node.type === 'folder') {
+              return { ...node, children };
+            }
+            if (node.children) {
+              return { ...node, children: updateNode(node.children) };
+            }
+            return node;
+          });
+        };
+        return updateNode(prev);
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load folder contents',
+      );
+    }
+  };
+
+  const toggleFolder = async (path: string) => {
+    const isExpanded = expandedFolders.has(path);
+
+    setExpandedFolders((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(path)) {
+      if (isExpanded) {
         newSet.delete(path);
       } else {
         newSet.add(path);
       }
       return newSet;
     });
+
+    if (!isExpanded) {
+      // Load folder contents if not already loaded
+      const folderNode = findNodeByPath(fileTree, path);
+      if (
+        folderNode &&
+        folderNode.type === 'folder' &&
+        (!folderNode.children || folderNode.children.length === 0)
+      ) {
+        await loadFolderChildren(path);
+      }
+    }
+  };
+
+  const findNodeByPath = (nodes: FileNode[], path: string): FileNode | null => {
+    for (const node of nodes) {
+      if (node.path === path) {
+        return node;
+      }
+      if (node.children) {
+        const found = findNodeByPath(node.children, path);
+        if (found) return found;
+      }
+    }
+    return null;
   };
 
   const handleFileSelect = (path: string, type: 'file' | 'folder') => {
@@ -108,17 +123,21 @@ export function FilesTab() {
     }
   };
 
+  useEffect(() => {
+    loadFileTree();
+  }, [loadFileTree]);
+
   const renderFileNode = (node: FileNode, depth = 0) => {
     const isExpanded = expandedFolders.has(node.path);
-    
+
     return (
       <div key={node.path}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start text-sm h-8 px-2 hover:bg-muted",
+            'w-full justify-start text-sm h-8 px-2 hover:bg-muted',
             depth > 0 && `ml-${depth * 4}`,
-            selectedFile === node.path && node.type === 'file' && "bg-muted"
+            selectedFile === node.path && node.type === 'file' && 'bg-muted',
           )}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => handleFileSelect(node.path, node.type)}
@@ -144,10 +163,10 @@ export function FilesTab() {
           )}
           <span className="truncate">{node.name}</span>
         </Button>
-        
+
         {node.type === 'folder' && isExpanded && node.children && (
           <div>
-            {node.children.map(child => renderFileNode(child, depth + 1))}
+            {node.children.map((child) => renderFileNode(child, depth + 1))}
           </div>
         )}
       </div>
@@ -157,21 +176,41 @@ export function FilesTab() {
   return (
     <div className="h-full flex">
       {/* File tree on the left */}
-      <div className={cn(
-        "flex flex-col border-r border-border transition-all duration-200",
-        selectedFile ? "w-1/3 min-w-[200px]" : "w-full"
-      )}>
-        <div className="p-4 border-b">
+      <div
+        className={cn(
+          'flex flex-col border-r border-border transition-all duration-200',
+          selectedFile ? 'w-1/3 min-w-[200px]' : 'w-full',
+        )}
+      >
+        <div className="p-4 border-b flex items-center justify-between">
           <h3 className="text-sm font-medium">Project Files</h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={loadFileTree}
+            disabled={loading}
+          >
+            <RefreshCw className={cn('size-4', loading && 'animate-spin')} />
+          </Button>
         </div>
-        
+
         <ScrollArea className="flex-1">
           <div className="p-2">
-            {fileTree.map(node => renderFileNode(node))}
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md mb-2">
+                {error}
+              </div>
+            )}
+            {loading && fileTree.length === 0 && (
+              <div className="p-3 text-sm text-muted-foreground">
+                Loading files...
+              </div>
+            )}
+            {fileTree.map((node) => renderFileNode(node))}
           </div>
         </ScrollArea>
       </div>
-      
+
       {/* File viewer on the right */}
       {selectedFile && (
         <div className="flex-1 min-w-0">

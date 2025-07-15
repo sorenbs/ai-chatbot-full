@@ -128,11 +128,27 @@ export function Chat({
 
   // Emit custom event when messages change
   useEffect(() => {
-    const hasMessages = messages.length > 0;
+    const hasMessages = messages.length > 0 || initialMessages.length > 0;
     window.dispatchEvent(new CustomEvent('chat-messages-changed', { 
       detail: { hasMessages } 
     }));
-  }, [messages]);
+  }, [messages, initialMessages]);
+
+  // Listen for check requests from chat-layout
+  useEffect(() => {
+    const handleMessagesCheck = () => {
+      const hasMessages = messages.length > 0 || initialMessages.length > 0;
+      window.dispatchEvent(new CustomEvent('chat-messages-changed', { 
+        detail: { hasMessages } 
+      }));
+    };
+
+    window.addEventListener('chat-messages-check', handleMessagesCheck);
+    
+    return () => {
+      window.removeEventListener('chat-messages-check', handleMessagesCheck);
+    };
+  }, [messages, initialMessages]);
 
 
 

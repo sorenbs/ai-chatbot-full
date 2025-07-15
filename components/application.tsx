@@ -1,4 +1,5 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
+import { useProject, extractProjectIdFromToolResult } from '@/lib/project-context';
 
 interface ApplicationToolCallProps {
   args: { applicationName: string };
@@ -22,6 +23,7 @@ interface ApplicationToolResultProps {
 }
 
 function PureApplicationToolResult({ input, output }: ApplicationToolResultProps) {
+  const { setProjectId } = useProject();
   let result: any;
   let isError = false;
 
@@ -31,6 +33,13 @@ function PureApplicationToolResult({ input, output }: ApplicationToolResultProps
     isError = true;
     result = { error: output.content[0].text };
   }
+
+  // Extract and set projectId when application is successfully created
+  useEffect(() => {
+    if (!isError && result?.id) {
+      setProjectId(result.id);
+    }
+  }, [isError, result?.id, setProjectId]);
 
   if (isError) {
     return (
@@ -90,6 +99,18 @@ interface GenericToolResultProps {
 }
 
 function PureGenericToolResult({ toolName, input, output }: GenericToolResultProps) {
+  const { setProjectId } = useProject();
+
+  // Handle applications_set_active to set the project ID
+  useEffect(() => {
+    if (toolName === 'applications_set_active') {
+      const projectId = extractProjectIdFromToolResult(output);
+      if (projectId) {
+        setProjectId(projectId);
+      }
+    }
+  }, [toolName, output, setProjectId]);
+
   return (
     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <div className="flex items-center gap-2 mb-2">

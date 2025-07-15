@@ -100,6 +100,13 @@ const PurePreviewMessage = ({
               </div>
             )}
 
+            {/* Check if this is an overloaded error message */}
+            {(message as any).type === 'overloaded_error' && (
+              <div className="text-red-500 p-3 border border-red-200 rounded-lg bg-red-50">
+                The AI provider is overloaded. Try again shortly.
+              </div>
+            )}
+
             {message.parts?.map((part, index) => {
               const { type } = part;
               const key = `message-${message.id}-part-${index}`;
