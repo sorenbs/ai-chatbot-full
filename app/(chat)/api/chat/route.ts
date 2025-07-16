@@ -62,6 +62,8 @@ export function getStreamContext() {
   return globalStreamContext;
 }
 
+const { prismaClient, prismaTools } = await prismaMCPClientAndTools();
+
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
 
@@ -151,8 +153,6 @@ export async function POST(request: Request) {
 
     console.log(JSON.stringify(uiMessages, null, 2));
 
-    const { prismaClient, prismaTools } = await prismaMCPClientAndTools();
-    
     // Wrap all tools with validation
     const validatedPrismaTools = wrapToolsWithValidation(prismaTools);
 
@@ -163,26 +163,6 @@ export async function POST(request: Request) {
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: safeConvertToModelMessages(uiMessages),
           stopWhen: hasToolCall('returnToUser'),
-          //@ts-ignore
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : ([
-                  'getWeather',
-                  'application_create',
-                  'application_logs',
-                  'application_read',
-                  'application_restart',
-                  'application_status',
-                  'applications_delete',
-                  'applications_list',
-                  'applications_set_active',
-                  'file_create',
-                  'file_read',
-                  'file_edit_diff',
-                  'files_list',
-                  'returnToUser',
-                ] as const),
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
             ...validatedPrismaTools,
@@ -219,7 +199,7 @@ export async function POST(request: Request) {
           })),
         });
 
-        await prismaClient.close();
+        // await prismaClient.close();
       },
       onError: (error) => {
         console.log(error);
