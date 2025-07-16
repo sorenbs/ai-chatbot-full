@@ -10,10 +10,12 @@ import { cn } from '@/lib/utils';
 export function PreviewTab() {
   const [url, setUrl] = useState('http://localhost:3000');
   const [isLoading, setIsLoading] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
 
   const handleRefresh = () => {
     setIsLoading(true);
-    // Simulate refresh
+    // Force iframe reload by changing key
+    setIframeKey(prev => prev + 1);
     setTimeout(() => setIsLoading(false), 500);
   };
 
@@ -58,6 +60,7 @@ export function PreviewTab() {
       
       <div className="flex-1 relative">
         <iframe
+          key={iframeKey}
           src={url}
           className="w-full h-full border-0"
           title="Preview"

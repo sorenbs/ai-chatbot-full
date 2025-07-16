@@ -173,6 +173,14 @@ export async function POST(request: Request) {
             isEnabled: isProductionEnvironment,
             functionId: 'stream-text',
           },
+          onStepFinish: async (stepResult) => {
+            console.log(`STEP FINISH: ${stepResult.text}`);
+            console.log('<<<');
+            console.log(stepResult.request.body);
+            console.log('===');
+            console.log(JSON.stringify(stepResult.response.messages));
+            console.log('>>>');
+          },
         });
 
         result.consumeStream();

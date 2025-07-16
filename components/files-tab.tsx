@@ -38,7 +38,8 @@ export function FilesTab() {
       const tree = await filesClient.buildFileTree();
       setFileTree(tree);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load files');
+      // Silently handle errors and show empty list instead
+      setFileTree([]);
     } finally {
       setLoading(false);
     }
@@ -70,9 +71,8 @@ export function FilesTab() {
         return updateNode(prev);
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load folder contents',
-      );
+      // Silently handle folder loading errors
+      console.warn('Failed to load folder contents:', err);
     }
   };
 
@@ -196,11 +196,6 @@ export function FilesTab() {
 
         <ScrollArea className="flex-1">
           <div className="p-2">
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md mb-2">
-                {error}
-              </div>
-            )}
             {loading && fileTree.length === 0 && (
               <div className="p-3 text-sm text-muted-foreground">
                 Loading files...
