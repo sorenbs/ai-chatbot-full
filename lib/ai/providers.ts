@@ -3,7 +3,7 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-// import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from '@ai-sdk/gateway';
 // import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGroq } from '@ai-sdk/groq';
 
@@ -23,11 +23,12 @@ const groq = createGroq({
 //   apiKey: process.env.OPENROUTER_API_KEY,
 // });
 
-// const gateway = createGateway({
-//   apiKey: process.env.AI_GATEWAY, // Use the AI Gateway API key from environment
-// });
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY, // Use the AI Gateway API key from environment
+});
 
-const modelName = `moonshotai/kimi-k2-instruct`;
+// const modelName = `moonshotai/kimi-k2-instruct`;
+const model = gateway('anthropic/claude-4-sonnet');
 
 export const myProvider = isTestEnvironment
   ? customProvider({
@@ -40,13 +41,13 @@ export const myProvider = isTestEnvironment
     })
   : customProvider({
       languageModels: {
-        'chat-model': groq(modelName),
+        'chat-model': model,
         'chat-model-reasoning': wrapLanguageModel({
-          model: groq(modelName),
+          model: model,
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
-        'title-model': groq(modelName),
-        'artifact-model': groq(modelName),
-        'small-model': groq(modelName),
+        'title-model': model,
+        'artifact-model': model,
+        'small-model': model,
       },
     });
